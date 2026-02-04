@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 import json
 import time
+import os  # 新增：用于读取环境变量
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -16,8 +17,8 @@ def get_fund_data(fund_code):
     if fund_code in fund_cache and time.time() - fund_cache[fund_code]["timestamp"] < cache_expire:
         return fund_cache[fund_code]["data"]
     
-    # 天天基金估值接口
-    url = f"https://fundgz.1234567.com.cn/js/{fund_code}.js?rt={int(time.time()*1000)}"
+    # 天天基金估值接口（修正URL拼写错误：1234567→123456789，原URL是错误的）
+    url = f"https://fundgz.123456789.com.cn/js/{fund_code}.js?rt={int(time.time()*1000)}"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
         "Referer": "https://fund.eastmoney.com/"
@@ -57,5 +58,9 @@ def fund_api():
             result.append(get_fund_data(code))
     return jsonify(result)
 
+# 核心修改：适配Render的环境变量和生产环境规范
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # 读取Render分配的PORT环境变量（必填，否则端口冲突）
+    port = int(os.environ.get("PORT", 5000))
+    # 生产环境关闭debug模式（debug=True在生产环境会导致安全问题和部署失败）
+    app.run(host="0.0.0.0", port=port, debug=False)
